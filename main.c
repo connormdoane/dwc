@@ -3,20 +3,26 @@
 #include <string.h>
 #include <stdbool.h>
 
-void print_bytes(char* filename)
+void print_bytes(FILE* file, char* filename)
 {
-  FILE* file = fopen(filename, "rb");
-  if (file) {
-    fseek(file, 0, SEEK_END); // move to the end of the file
-    printf("  %ld %s\n", ftell(file), filename); // print the end of the file in bytes, aka the size
-  } else {
-    printf("Error opening file %s, ensure it exists and is readable.\n", filename);
+  fseek(file, 0, SEEK_END); // move to the end of the file
+  printf("%ld %s\n", ftell(file), filename); // print the end of the file in bytes, aka the size
+}
+
+void print_lines(FILE* file, char* filename)
+{
+  int counter = 0;
+  char ch;
+  while ((ch = fgetc(file)) != EOF) {
+    if (ch == '\n') counter++;
   }
+  printf("%d %s\n", counter, filename);
 }
 
 int main(int argc, char* argv[])
 {
   bool bytes = false;
+  bool lines = false;
   char* filename;
 
   // command-line flags
@@ -25,13 +31,28 @@ int main(int argc, char* argv[])
       bytes = true;
       continue;
     }
+    if (strcmp(argv[i], "-l") == 0) {
+      lines = true;
+      continue;
+    }
     filename = argv[i];
   }
 
-  /* printf("%d\n", bytes); */
-  /* printf("%s\n", filename); */
+  FILE* file = fopen(filename, "r");
+
+  if (!file) {
+    printf("Error opening file %s. Ensure the file exists and is readable.\n", filename);
+    return -1;
+  }
 
   if (bytes) {
-    print_bytes(filename);
+    print_bytes(file, filename);
   }
+  if (lines) {
+    print_lines(file, filename);
+  }
+
+  fclose(file);
+
+  return 0;
 }
