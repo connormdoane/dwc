@@ -6,36 +6,36 @@
 #include <locale.h>
 #include <ctype.h>
 
-void print_bytes(FILE* file, char* filename)
+long print_bytes(FILE* file)
 {
   fseek(file, 0, SEEK_END); // move to the end of the file
-  printf("%ld %s\n", ftell(file), filename); // print the end of the file in bytes, aka the size
+  return ftell(file); // current position is equal to byte count, since we're at EOF
 }
 
-void print_chars(FILE* file, char* filename)
+long print_chars(FILE* file)
 {
   setlocale(LC_CTYPE, "");
-  int counter = 0;
+  long counter = 0;
   wint_t wch;
   while ((wch = fgetwc(file)) != WEOF) {
     counter++;
   }
-  printf("%d %s\n", counter, filename);
+  return counter;
 }
 
-void print_lines(FILE* file, char* filename)
+long print_lines(FILE* file)
 {
-  int counter = 0;
+  long counter = 0;
   char ch;
   while ((ch = fgetc(file)) != EOF) {
     if (ch == '\n') counter++;
   }
-  printf("%d %s\n", counter, filename);
+  return counter;
 }
 
-void print_words(FILE* file, char* filename)
+long print_words(FILE* file)
 {
-  int counter = 0;
+  long counter = 0;
   bool in_word = false;
   int ch;
   while ((ch = fgetc(file)) != EOF) {
@@ -46,7 +46,7 @@ void print_words(FILE* file, char* filename)
       counter++;
     }
   }
-  printf("%d %s\n", counter, filename);
+  return counter;
 }
 
 int main(int argc, char* argv[])
@@ -91,16 +91,25 @@ int main(int argc, char* argv[])
   }
 
   if (bytes) {
-    print_bytes(file, filename);
+    printf("%ld %s\n", print_bytes(file), filename);
   }
   if (lines) {
-    print_lines(file, filename);
+    printf("%ld %s\n", print_lines(file), filename);
   }
   if (words) {
-    print_words(file, filename);
+    printf("%ld %s\n", print_words(file), filename);
   }
   if (chars) {
-    print_chars(file, filename);
+    printf("%ld %s\n", print_chars(file), filename);
+  }
+
+  if (!bytes && !lines && !words && !chars) { // Default printing
+    long lc = print_lines(file);
+    fseek(file, 0, SEEK_SET); // reset to beginning of file
+    long wc = print_words(file);
+    fseek(file, 0, SEEK_SET);
+    long bc = print_bytes(file);
+    printf(" %ld %ld %ld %s\n", lc, wc, bc, filename);
   }
 
   fclose(file);
