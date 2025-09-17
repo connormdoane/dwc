@@ -2,12 +2,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <wchar.h>
+#include <locale.h>
 #include <ctype.h>
 
 void print_bytes(FILE* file, char* filename)
 {
   fseek(file, 0, SEEK_END); // move to the end of the file
   printf("%ld %s\n", ftell(file), filename); // print the end of the file in bytes, aka the size
+}
+
+void print_chars(FILE* file, char* filename)
+{
+  setlocale(LC_CTYPE, "");
+  int counter = 0;
+  wint_t wch;
+  while ((wch = fgetwc(file)) != WEOF) {
+    counter++;
+  }
+  printf("%d %s\n", counter, filename);
 }
 
 void print_lines(FILE* file, char* filename)
@@ -41,6 +54,7 @@ int main(int argc, char* argv[])
   bool bytes = false;
   bool lines = false;
   bool words = false;
+  bool chars = false;
   char* filename;
 
   // command-line flags
@@ -57,7 +71,16 @@ int main(int argc, char* argv[])
       words = true;
       continue;
     }
+    if (strcmp(argv[i], "-m") == 0) {
+      chars = true;
+      continue;
+    }
     filename = argv[i];
+  }
+
+  if (!filename) {
+    printf("Proper usage: %s [-flags] [filename]", argv[0]);
+    return -1;
   }
 
   FILE* file = fopen(filename, "r");
@@ -75,6 +98,9 @@ int main(int argc, char* argv[])
   }
   if (words) {
     print_words(file, filename);
+  }
+  if (chars) {
+    print_chars(file, filename);
   }
 
   fclose(file);
