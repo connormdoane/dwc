@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
   bool lines = false;
   bool words = false;
   bool chars = false;
-  char* filename;
+  char* filename = NULL;
 
   // command-line flags
   for (int i = 1; i < argc; i++) {
@@ -78,16 +78,20 @@ int main(int argc, char* argv[])
     filename = argv[i];
   }
 
-  if (!filename) {
-    printf("Proper usage: %s [-flags] [filename]", argv[0]);
-    return -1;
-  }
+  /* if (!filename) { */
+  /*   printf("Proper usage: %s [-flags] [filename]", argv[0]); */
+  /*   return -1; */
+  /* } */
+  FILE* file;
 
-  FILE* file = fopen(filename, "r");
-
-  if (!file) {
-    printf("Error opening file %s. Ensure the file exists and is readable.\n", filename);
-    return -1;
+  if (filename) {
+    file = fopen(filename, "r");
+    if (!file) {
+      printf("Error opening file %s. Ensure the file exists and is readable.\n", filename);
+      return -1;
+    }
+  } else {
+    file = stdin;
   }
 
   if (bytes) {
@@ -109,10 +113,10 @@ int main(int argc, char* argv[])
     long wc = print_words(file);
     fseek(file, 0, SEEK_SET);
     long bc = print_bytes(file);
-    printf(" %ld %ld %ld %s\n", lc, wc, bc, filename);
+    printf(" %ld %ld %ld %s\n", lc, wc, bc, filename ? filename : "");
   }
 
-  fclose(file);
+  if (filename) fclose(file);
 
   return 0;
 }
