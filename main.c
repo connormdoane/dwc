@@ -2,51 +2,36 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <wchar.h>
-#include <locale.h>
 #include <ctype.h>
 
-long print_bytes(FILE* file)
-{
-  fseek(file, 0, SEEK_END); // move to the end of the file
-  return ftell(file); // current position is equal to byte count, since we're at EOF
-}
+struct Counts {
+  long lines;
+  long words;
+  long bytes;
+  long chars;
+};
 
-long print_chars(FILE* file)
+struct Counts count_all(FILE* file)
 {
-  setlocale(LC_CTYPE, "");
-  long counter = 0;
-  wint_t wch;
-  while ((wch = fgetwc(file)) != WEOF) {
-    counter++;
-  }
-  return counter;
-}
-
-long print_lines(FILE* file)
-{
-  long counter = 0;
-  char ch;
-  while ((ch = fgetc(file)) != EOF) {
-    if (ch == '\n') counter++;
-  }
-  return counter;
-}
-
-long print_words(FILE* file)
-{
-  long counter = 0;
+  struct Counts c = {0};
   bool in_word = false;
   int ch;
+
   while ((ch = fgetc(file)) != EOF) {
-    if (isspace((unsigned char)ch)) {
+    c.bytes++;
+
+    if ((ch & 0xC0) != 0x80) c.chars++; // Manual UTF-8 continuation char handling
+
+    if (ch == '\n') c.lines++;
+
+    if (isspace(ch)) {
       in_word = false;
     } else if (!in_word) {
+      c.words++;
       in_word = true;
-      counter++;
     }
   }
-  return counter;
+  return c;
 }
 
 int main(int argc, char* argv[])
@@ -78,10 +63,6 @@ int main(int argc, char* argv[])
     filename = argv[i];
   }
 
-  /* if (!filename) { */
-  /*   printf("Proper usage: %s [-flags] [filename]", argv[0]); */
-  /*   return -1; */
-  /* } */
   FILE* file;
 
   if (filename) {
@@ -94,26 +75,23 @@ int main(int argc, char* argv[])
     file = stdin;
   }
 
+  struct Counts c = count_all(file);
+
   if (bytes) {
-    printf("%ld %s\n", print_bytes(file), filename);
+    printf("%ld %s\n", c.bytes, filename);
   }
   if (lines) {
-    printf("%ld %s\n", print_lines(file), filename);
+    printf("%ld %s\n", c.lines, filename);
   }
   if (words) {
-    printf("%ld %s\n", print_words(file), filename);
+    printf("%ld %s\n", c.words, filename);
   }
   if (chars) {
-    printf("%ld %s\n", print_chars(file), filename);
+    printf("%ld %s\n", c.chars, filename);
   }
 
   if (!bytes && !lines && !words && !chars) { // Default printing
-    long lc = print_lines(file);
-    fseek(file, 0, SEEK_SET); // reset to beginning of file
-    long wc = print_words(file);
-    fseek(file, 0, SEEK_SET);
-    long bc = print_bytes(file);
-    printf(" %ld %ld %ld %s\n", lc, wc, bc, filename ? filename : "");
+    printf(" %ld %ld %ld %s\n", c.lines, c.words, c.bytes, filename ? filename : "");
   }
 
   if (filename) fclose(file);
